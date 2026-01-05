@@ -4,17 +4,18 @@ Gestiona, respalda y restaura configuraciones de Brave Browser de forma sencilla
 
 ## 📋 Descripción
 
-Esta herramienta te permite gestionar las configuraciones de Brave Browser, incluyendo:
-- Múltiples perfiles de usuario
-- Marcadores, historial y extensiones
-- Configuraciones globales y locales
-- Backups automáticos y manuales
+Esta herramienta te permite gestionar las configuraciones de Brave Browser de forma segura, incluyendo:
+- Múltiples perfiles de usuario (solo configuración)
+- Configuraciones globales y locales (sin datos personales)
+- Backups automáticos y manuales (solo preferencias)
+- Gestión segura sin comprometer tu privacidad
 
 ## 🚀 Características
 
 - 🌐 **Multiplataforma**: Linux, Windows y macOS
 - 👥 **Gestión de perfiles**: Detección automática de múltiples perfiles
-- 💾 **Backups inteligentes**: Excluye archivos temporales automáticamente
+- 🔒 **Privacidad garantizada**: Solo guarda configuraciones, sin datos personales
+- 💾 **Backups inteligentes**: Excluye archivos temporales y datos sensibles
 - 📁 **Múltiples destinos**: Guarda en diferentes carpetas según necesites
 - 🔄 **Restauración segura**: Verifica cierre de Brave antes de restaurar
 - 📊 **Estado en tiempo real**: Información actualizada del sistema
@@ -80,8 +81,8 @@ python3 brave_config_manager.py
 ### Opciones Disponibles
 
 #### 1. 📥 Guardar Configuración
-- **Todos los perfiles**: Guarda todos los perfiles de Brave
-- **Perfil específico**: Selecciona un perfil individual
+- **Todos los perfiles**: Guarda solo la configuración de todos los perfiles sin datos personales
+- **Perfil específico**: Guarda solo la configuración del perfil seleccionado sin datos personales
 - **Solo configuración global**: Guarda solo preferencias sin datos de navegación
 
 #### 2. 📤 Restaurar Configuración
@@ -100,15 +101,20 @@ python3 brave_config_manager.py
 - **Windows**: `%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data`
 - **macOS**: `~/Library/Application Support/BraveSoftware/Brave-Browser/User Data`
 
-### Archivos Incluidos en Backups
-✅ **Incluidos**:
-- Perfiles completos (Profile 1, Profile 2, Default, etc.)
-- Marcadores (Bookmarks)
-- Historial (History)
-- Extensiones (Extensions/)
-- Contraseñas (Login Data)
-- Cookies
+### Archivos Incluidos en Configuraciones
+✅ **Incluidos (Solo configuración)**:
+- Archivos de preferencias de perfiles (Preferences)
+- Datos web de configuración (Web Data)
+- Preferencias seguras (Secure Preferences)
 - Configuración global (Local State, Preferences)
+
+❌ **Excluidos (Datos personales)**:
+- Historial de navegación (History)
+- Contraseñas guardadas (Login Data)
+- Cookies y sesiones (Cookies)
+- Marcadores (Bookmarks)
+- Datos de extensiones
+- Caché y archivos temporales
 
 ❌ **Excluidos automáticamente**:
 - Archivos temporales (*.tmp, *.lock)
@@ -117,8 +123,9 @@ python3 brave_config_manager.py
 
 ## 🚨 Notas Importantes
 
-### Seguridad de los Datos
-- **Backups**: Se pueden crear con Brave en ejecución (excluye bloqueados)
+### Seguridad y Privacidad
+- **Configuraciones**: Solo guardan preferencias del navegador, sin datos personales
+- **Privacidad**: No se incluye historial, contraseñas, cookies ni marcadores
 - **Restauración**: REQUIERE Brave completamente cerrado
 - **Confirmación**: Siempre confirma operaciones destructivas
 
@@ -127,6 +134,7 @@ python3 brave_config_manager.py
 2. **Cerrar Brave** completamente antes de restaurar
 3. **Verificar espacio en disco** antes de guardar grandes configuraciones
 4. **Documentar cambios** importantes en los archivos Markdown
+5. **Privacidad primero**: Todas las configuraciones guardadas son seguras para compartir
 
 ## 🤝 Contribuciones
 
@@ -152,6 +160,12 @@ Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) par
 - A todos los usuarios que ayudaron a probar y mejorar la herramienta
 
 ## 📄 Cambios (Changelog)
+
+### v1.1.0
+- **🔒 Mejora de privacidad**: Ahora solo guarda configuraciones sin datos personales
+- **👥 Perfiles limpios**: Opción 1 y 2 ahora excluyen historial, contraseñas y cookies
+- **📁 Nomenclatura clara**: Nombres de archivos indican "config" vs "saved"
+- **🛡️ Seguridad reforzada**: Todas las opciones de guardado son seguras para compartir
 
 ### v1.0.0
 - Gestión completa de perfiles de Brave

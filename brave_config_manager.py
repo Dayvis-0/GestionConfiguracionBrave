@@ -284,7 +284,7 @@ def create_backup():
         return None
 
 def save_all_profiles():
-    """Guarda todos los perfiles"""
+    """Guarda todos los perfiles (Solo configuraciones, sin datos personales)"""
     brave_config = get_brave_config_path()
     profiles = detect_profiles(brave_config)
     
@@ -315,14 +315,13 @@ def save_all_profiles():
         
         if choice == 1:
             saved_dir = get_saved_configs_dir()
-            saved_name = f"brave_saved_{timestamp}"
+            saved_name = f"brave_all_profiles_config_{timestamp}"
             saved_path = saved_dir / saved_name
         elif choice == 2:
-            # Guardar en Linux/
             current_dir = Path.cwd()
             linux_dir = current_dir / "Linux"
             linux_dir.mkdir(exist_ok=True)
-            saved_name = f"brave_saved_{timestamp}"
+            saved_name = f"brave_all_profiles_config_{timestamp}"
             saved_path = linux_dir / saved_name
         elif choice == 3:
             custom_name = input("📝 Nombre de la carpeta: ").strip()
@@ -333,29 +332,40 @@ def save_all_profiles():
             saved_path = current_dir / custom_name
         elif choice == 4:
             backups_dir = get_backups_dir()
-            saved_name = f"brave_saved_{timestamp}"
+            saved_name = f"brave_all_profiles_config_{timestamp}"
             saved_path = backups_dir / saved_name
         else:
             print("❌ Opción inválida")
             return False
         
-        # Verificar límite de configs guardadas
-        if choice == 1:
-            saved_configs = list_saved_configurations()
-            if len(saved_configs) >= 2:
-                print("⚠️ Ya hay 2 configuraciones guardadas")
-                if not ask_yes_no("¿Querés eliminar la más antigüa para guardar esta nueva?"):
-                    return False
-                
-                oldest = saved_configs[-1]
-                shutil.rmtree(oldest)
-                print(f"🗑️ Eliminada configuración antigüa: {oldest.name}")
+        # Crear la carpeta de destino
+        saved_path.mkdir(exist_ok=True, parents=True)
         
-        # Crear la configuración guardada
-        print(f"🔄 Guardando configuración: {saved_path.name}")
-        shutil.copytree(brave_config, saved_path)
-        print(f"✅ Configuración guardada: {saved_path.name}")
+        print(f"🔄 Guardando configuraciones de {len(profiles)} perfiles...")
         
+        # 1. Copiar archivos globales primero
+        global_files = ['Local State', 'Preferences']
+        for f in global_files:
+            src = brave_config / f
+            if src.exists():
+                shutil.copy2(src, saved_path / f)
+
+        # 2. Copiar solo configuración de cada perfil
+        config_files_to_keep = ['Preferences', 'Web Data', 'Secure Preferences']
+        
+        for profile in profiles:
+            profile_folder = profile['folder_name']
+            dest_profile_path = saved_path / profile_folder
+            dest_profile_path.mkdir(exist_ok=True)
+            
+            print(f"   👤 Procesando: {profile['display_name']} ({profile_folder})")
+            
+            for config_file in config_files_to_keep:
+                src_file = profile['path'] / config_file
+                if src_file.exists():
+                    shutil.copy2(src_file, dest_profile_path / config_file)
+        
+        print(f"✅ ¡Hecho! Configuraciones guardadas en: {saved_path.name}")
         return True
         
     except ValueError:
@@ -366,7 +376,7 @@ def save_all_profiles():
         return False
 
 def save_specific_profile():
-    """Guarda un perfil específico"""
+    """Guarda un perfil específico (Solo configuraciones, sin datos personales)"""
     brave_config = get_brave_config_path()
     profiles = detect_profiles(brave_config)
     
@@ -393,7 +403,6 @@ def save_specific_profile():
         
         # Preguntar por backup
         if ask_yes_no("¿Querés hacer backup antes de guardar?"):
-            # AVISO: Recomendación para backup seguro
             print("\n💡 Consejo: Para backup 100% seguro, cerrá Brave antes")
             if ask_yes_no("¿Querés cerrar Brave y hacer backup?"):
                 print("📂 Por favor, cerrá todas las ventanas de Brave...")
@@ -420,14 +429,13 @@ def save_specific_profile():
         
         if dest_choice == 1:
             saved_dir = get_saved_configs_dir()
-            saved_name = f"brave_saved_{profile_name}_{timestamp}"
+            saved_name = f"brave_profile_config_{profile_name}_{timestamp}"
             saved_path = saved_dir / saved_name
         elif dest_choice == 2:
-            # Guardar en Linux/
             current_dir = Path.cwd()
             linux_dir = current_dir / "Linux"
             linux_dir.mkdir(exist_ok=True)
-            saved_name = f"brave_saved_{profile_name}_{timestamp}"
+            saved_name = f"brave_profile_config_{profile_name}_{timestamp}"
             saved_path = linux_dir / saved_name
         elif dest_choice == 3:
             custom_name = input("📝 Nombre de la carpeta: ").strip()
@@ -438,17 +446,36 @@ def save_specific_profile():
             saved_path = current_dir / custom_name
         elif dest_choice == 4:
             backups_dir = get_backups_dir()
-            saved_name = f"brave_saved_{profile_name}_{timestamp}"
+            saved_name = f"brave_profile_config_{profile_name}_{timestamp}"
             saved_path = backups_dir / saved_name
         else:
             print("❌ Opción inválida")
             return False
         
         # Crear la configuración guardada
-        print(f"🔄 Guardando perfil: {saved_path.name}")
-        shutil.copytree(selected_profile['path'], saved_path)
-        print(f"✅ Perfil guardado: {saved_path.name}")
+        saved_path.mkdir(exist_ok=True, parents=True)
         
+        print(f"🔄 Guardando configuración del perfil: {selected_profile['display_name']}")
+        
+        # 1. Copiar archivos globales necesarios
+        global_files = ['Local State', 'Preferences']
+        for f in global_files:
+            src = brave_config / f
+            if src.exists():
+                shutil.copy2(src, saved_path / f)
+
+        # 2. Copiar solo configuración del perfil seleccionado
+        config_files_to_keep = ['Preferences', 'Web Data', 'Secure Preferences']
+        profile_folder = selected_profile['folder_name']
+        dest_profile_path = saved_path / profile_folder
+        dest_profile_path.mkdir(exist_ok=True)
+        
+        for config_file in config_files_to_keep:
+            src_file = selected_profile['path'] / config_file
+            if src_file.exists():
+                shutil.copy2(src_file, dest_profile_path / config_file)
+        
+        print(f"✅ Perfil guardado (solo config): {saved_path.name}")
         return True
         
     except ValueError:
