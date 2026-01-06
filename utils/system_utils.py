@@ -65,10 +65,13 @@ class SystemUtils:
         saved = BackupManager.list_saved_configurations()
         brave_configs = ProfileHandler.find_brave_configurations(Path.cwd())
         
+        # Combinar configs sin duplicar
+        all_configs = set(brave_configs + saved)
+        
         return {
             'brave_path_display': str(brave_path),
             'profiles_count': len(profiles),
-            'brave_configs_count': len(brave_configs),
+            'brave_configs_count': len(all_configs),  # Total sin duplicados
             'backups_count': len(backups),
             'saved_configs_count': len(saved),
             'brave_current': brave_path.exists()
