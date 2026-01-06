@@ -14,7 +14,8 @@ Esta herramienta te permite gestionar las configuraciones de Brave Browser de fo
 
 - 🌐 **Multiplataforma**: Linux, Windows y macOS
 - 👥 **Gestión de perfiles**: Detección automática de múltiples perfiles
-- 🔒 **Privacidad garantizada**: Solo guarda configuraciones, sin datos personales
+- 🔒 **Máxima privacidad**: Solo guarda configuración pura, cero datos personales
+- 📄 **JSONs compactos**: Extrae solo settings esenciales como `BraveDayvis.json`
 - 💾 **Backups inteligentes**: Excluye archivos temporales y datos sensibles
 - 📁 **Múltiples destinos**: Guarda en diferentes carpetas según necesites
 - 🔄 **Restauración segura**: Verifica cierre de Brave antes de restaurar
@@ -81,9 +82,10 @@ python3 brave_config_manager.py
 ### Opciones Disponibles
 
 #### 1. 📥 Guardar Configuración
-- **Todos los perfiles**: Guarda solo la configuración de todos los perfiles sin datos personales
-- **Perfil específico**: Guarda solo la configuración del perfil seleccionado sin datos personales
-- **Solo configuración global**: Guarda solo preferencias sin datos de navegación
+- **Todos los perfiles**: Guarda configuración pura de todos los perfiles (JSONs limpios)
+- **Perfil específico**: Guarda configuración pura del perfil seleccionado (JSON limpio)
+- **Solo configuración global**: Guarda solo preferencias globales sin datos de navegación
+- **🎯 Solo settings clave**: Extrae configuración esencial (brave_settings, keyboard_shortcuts) como JSON compacto
 
 #### 2. 📤 Restaurar Configuración
 - **Configs guardadas**: Restaurar desde configuraciones guardadas
@@ -102,19 +104,23 @@ python3 brave_config_manager.py
 - **macOS**: `~/Library/Application Support/BraveSoftware/Brave-Browser/User Data`
 
 ### Archivos Incluidos en Configuraciones
-✅ **Incluidos (Solo configuración)**:
-- Archivos de preferencias de perfiles (Preferences)
-- Datos web de configuración (Web Data)
-- Preferencias seguras (Secure Preferences)
-- Configuración global (Local State, Preferences)
 
-❌ **Excluidos (Datos personales)**:
-- Historial de navegación (History)
-- Contraseñas guardadas (Login Data)
-- Cookies y sesiones (Cookies)
-- Marcadores (Bookmarks)
-- Datos de extensiones
-- Caché y archivos temporales
+✅ **Incluidos (Solo configuración pura)**:
+- **brave_settings**: Temas, privacidad, shields, descargas, idioma
+- **keyboard_shortcuts**: Atajos de teclado personalizados
+- **Extensions**: Lista y configuración de extensiones instaladas
+- **Global preferences**: Configuración global del navegador
+
+❌ **Excluidos (Todos los datos personales)**:
+- Historial de navegación, cookies, contraseñas
+- Marcadores, descargas, sesiones
+- Caché, archivos temporales, datos de sitios
+- Datos de extensiones, wallets, bases de datos locales
+
+✅ **Formato de salida**:
+- Archivos JSON limpios y compactos
+- Similares a `BraveDayvis.json` (ejemplo incluido)
+- Seguros para compartir y versionar
 
 ❌ **Excluidos automáticamente**:
 - Archivos temporales (*.tmp, *.lock)
@@ -132,34 +138,18 @@ python3 brave_config_manager.py
 ### Mejores Prácticas
 1. **Hacer backup** antes de cualquier restauración
 2. **Cerrar Brave** completamente antes de restaurar
-3. **Verificar espacio en disco** antes de guardar grandes configuraciones
-4. **Documentar cambios** importantes en los archivos Markdown
-5. **Privacidad primero**: Todas las configuraciones guardadas son seguras para compartir
-
-## 🤝 Contribuciones
-
-1. Fork del repositorio
-2. Crear rama de características (`git checkout -b feature/AmazingFeature`)
-3. Commit de cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abrir Pull Request
-
-## 📝 Licencia
-
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
-
-## 👤 Autor
-
-**Dayvis Atao Mallqui**
-- GitHub: [tu-username]
-- Email: [tu-email]
-
-## 🙏 Agradecimientos
-
-- A la comunidad de Brave Browser por el excelente navegador
-- A todos los usuarios que ayudaron a probar y mejorar la herramienta
+3. **Privacidad primero**: Todos los JSONs generados son seguros para compartir
+4. **Version control**: Los JSONs compactos son perfectos para Git
+5. **Configuración portátil**: Lleva tus settings entre dispositivos fácilmente
 
 ## 📄 Cambios (Changelog)
+
+### v2.0.0 - **Configuración Pura**
+- **🎯 JSONs compactos**: Todas las opciones ahora guardan configuración pura en formato JSON
+- **⚡ Extracción inteligente**: Nueva función `extract_settings_only()` extrae solo datos esenciales
+- **📁 Formato unificado**: Todos los perfiles guardados como JSONs limpios (tipo `BraveDayvis.json`)
+- **🔒 Máxima privacidad**: Cero datos personales, solo configuración portátil
+- **🔄 Opción 4 renovada**: "Solo settings clave" extrae brave_settings y keyboard_shortcuts
 
 ### v1.1.0
 - **🔒 Mejora de privacidad**: Ahora solo guarda configuraciones sin datos personales

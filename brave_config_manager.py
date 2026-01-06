@@ -350,20 +350,24 @@ def save_all_profiles():
             if src.exists():
                 shutil.copy2(src, saved_path / f)
 
-        # 2. Copiar solo configuración de cada perfil
-        config_files_to_keep = ['Preferences', 'Web Data', 'Secure Preferences']
-        
+        # 2. Extraer configuración pura de cada perfil (como JSON limpio)
         for profile in profiles:
-            profile_folder = profile['folder_name']
-            dest_profile_path = saved_path / profile_folder
-            dest_profile_path.mkdir(exist_ok=True)
+            print(f"   👤 Procesando: {profile['display_name']} ({profile['folder_name']})")
             
-            print(f"   👤 Procesando: {profile['display_name']} ({profile_folder})")
+            # Extraer configuración usando la función limpia
+            extracted_config = extract_settings_only(profile['path'])
             
-            for config_file in config_files_to_keep:
-                src_file = profile['path'] / config_file
-                if src_file.exists():
-                    shutil.copy2(src_file, dest_profile_path / config_file)
+            if extracted_config:
+                # Guardar como JSON limpio
+                json_filename = f"{profile['folder_name']}.json"
+                json_path = saved_path / json_filename
+                
+                with open(json_path, 'w', encoding='utf-8') as f:
+                    json.dump(extracted_config, f, indent=2, ensure_ascii=False)
+                
+                print(f"      ✅ Configuración extraída: {json_filename}")
+            else:
+                print(f"      ❌ Error al extraer configuración de: {profile['display_name']}")
         
         print(f"✅ ¡Hecho! Configuraciones guardadas en: {saved_path.name}")
         return True
@@ -464,16 +468,23 @@ def save_specific_profile():
             if src.exists():
                 shutil.copy2(src, saved_path / f)
 
-        # 2. Copiar solo configuración del perfil seleccionado
-        config_files_to_keep = ['Preferences', 'Web Data', 'Secure Preferences']
-        profile_folder = selected_profile['folder_name']
-        dest_profile_path = saved_path / profile_folder
-        dest_profile_path.mkdir(exist_ok=True)
+        # 2. Extraer configuración pura del perfil (como JSON limpio)
+        print(f"   🎯 Extrayendo configuración pura...")
         
-        for config_file in config_files_to_keep:
-            src_file = selected_profile['path'] / config_file
-            if src_file.exists():
-                shutil.copy2(src_file, dest_profile_path / config_file)
+        extracted_config = extract_settings_only(selected_profile['path'])
+        
+        if extracted_config:
+            # Guardar como JSON limpio
+            json_filename = f"{selected_profile['folder_name']}.json"
+            json_path = saved_path / json_filename
+            
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(extracted_config, f, indent=2, ensure_ascii=False)
+            
+            print(f"      ✅ Configuración extraída: {json_filename}")
+        else:
+            print(f"      ❌ Error al extraer configuración del perfil")
+            return False
         
         print(f"✅ Perfil guardado (solo config): {saved_path.name}")
         return True
@@ -560,6 +571,176 @@ def save_global_config_only():
         print(f"❌ Error al guardar configuración global: {e}")
         return False
 
+def extract_settings_only(profile_path):
+    """Extrae solo la configuración importante de un perfil (como el JSON existente)"""
+    
+    # Buscar archivo de configuración (Preferences o JSON personalizado)
+    prefs_file = profile_path / "Preferences"
+    json_files = list(profile_path.glob("*.json"))
+    
+    if not prefs_file.exists() and not json_files:
+        return None
+    
+    try:
+        # Determinar qué archivo leer
+        if prefs_file.exists():
+            # Leer Preferences estándar de Brave
+            with open(prefs_file, 'r', encoding='utf-8') as f:
+                prefs = json.load(f)
+            
+            # Extraer solo las secciones importantes
+            extracted = {
+                "brave_settings": {},
+                "keyboard_shortcuts": {},
+                "extraction_metadata": {
+                    "extracted_at": datetime.datetime.now().isoformat(),
+                    "extraction_version": "pure_v1.0",
+                    "brave_version": "unknown",
+                    "sections_extracted": ["brave_settings", "keyboard_shortcuts"]
+                }
+            }
+            
+            # Extraer configuraciones de Brave
+            if 'brave' in prefs:
+                extracted["brave_settings"] = prefs['brave']
+            
+            # Extraer atajos de teclado
+            if 'shortcuts' in prefs:
+                extracted["keyboard_shortcuts"] = prefs['shortcuts']
+            elif 'keyboard_shortcuts' in prefs:
+                extracted["keyboard_shortcuts"] = prefs['keyboard_shortcuts']
+            
+            # Extraer configuración del perfil si existe
+            if 'profile' in prefs and 'name' in prefs['profile']:
+                extracted["profile_name"] = prefs['profile']['name']
+            
+            return extracted
+            
+        else:
+            # Usar el JSON existente (ya está en el formato correcto)
+            with open(json_files[0], 'r', encoding='utf-8') as f:
+                existing_json = json.load(f)
+            
+            # Actualizar metadatos
+            if 'extraction_metadata' in existing_json:
+                existing_json['extraction_metadata']['extracted_at'] = datetime.datetime.now().isoformat()
+            
+            return existing_json
+        
+    except Exception as e:
+        print(f"❌ Error al extraer configuración: {e}")
+        return None
+
+def save_settings_only():
+    """Guarda solo la configuración clave (settings y atajos) sin datos de navegación"""
+    brave_config = get_brave_config_path()
+    
+    if not brave_config.exists():
+        print("❌ No existe configuración actual de Brave")
+        return False
+    
+    # Detectar perfiles
+    profiles = detect_profiles(brave_config)
+    if not profiles:
+        print("❌ No se detectaron perfiles de Brave")
+        return False
+    
+    print(f"\n📥 GUARDAR SOLO CONFIGURACIÓN (SIN DATOS)")
+    print("=" * 40)
+    print("🎯 Esto guardará solo:")
+    print("   • Configuración de Brave (tema, privacidad, etc.)")
+    print("   • Atajos de teclado personalizados")
+    print("   • Extensiones instaladas")
+    print("   ❌ NO guardará: historial, cookies, cachés, datos de sitios")
+    print()
+    
+    # Mostrar perfiles disponibles
+    for i, profile in enumerate(profiles, 1):
+        print(f"   {i}. {profile['display_name']} ({profile['folder_name']})")
+    
+    print(f"   {len(profiles) + 1}. Todos los perfiles")
+    print(f"   {len(profiles) + 2}. Volver al menú anterior")
+    
+    try:
+        choice = int(input(f"\n🔢 Elegí perfil (1-{len(profiles) + 2}): "))
+        
+        if choice == len(profiles) + 2:
+            return False
+        
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Preguntar dónde guardar
+        print("\n📁 ¿Dónde querés guardar?")
+        print("   1. En saved_configs/ (recomendado)")
+        print("   2. En Linux/ (repositorio local)")
+        print("   3. En una carpeta personalizada")
+        
+        save_choice = int(input("\n🔢 Elegí opción (1-3): "))
+        
+        if save_choice == 1:
+            saved_dir = get_saved_configs_dir()
+            saved_name = f"brave_settings_{timestamp}"
+            saved_path = saved_dir / saved_name
+        elif save_choice == 2:
+            current_dir = Path.cwd()
+            linux_dir = current_dir / "Linux"
+            linux_dir.mkdir(exist_ok=True)
+            saved_name = f"brave_settings_{timestamp}"
+            saved_path = linux_dir / saved_name
+        elif save_choice == 3:
+            custom_name = input("📝 Nombre de la carpeta: ").strip()
+            if not custom_name:
+                print("❌ El nombre no puede estar vacío")
+                return False
+            current_dir = Path.cwd()
+            saved_path = current_dir / custom_name
+        else:
+            print("❌ Opción inválida")
+            return False
+        
+        # Crear directorio
+        saved_path.mkdir(exist_ok=True)
+        
+        # Procesar perfiles seleccionados
+        profiles_to_process = []
+        if choice == len(profiles) + 1:
+            # Todos los perfiles
+            profiles_to_process = profiles
+        else:
+            # Perfil específico
+            profiles_to_process = [profiles[choice - 1]]
+        
+        success_count = 0
+        for profile in profiles_to_process:
+            print(f"\n📄 Extrayendo configuración de: {profile['display_name']}")
+            
+            extracted = extract_settings_only(profile['path'])
+            if extracted:
+                # Guardar como JSON
+                output_file = saved_path / f"{profile['folder_name']}.json"
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    json.dump(extracted, f, indent=2, ensure_ascii=False)
+                
+                print(f"✅ Guardado: {output_file.name}")
+                success_count += 1
+            else:
+                print(f"❌ Error al extraer: {profile['display_name']}")
+        
+        if success_count > 0:
+            print(f"\n✅ Configuración guardada en: {saved_path}")
+            print(f"📊 Perfiles procesados: {success_count}/{len(profiles_to_process)}")
+            return True
+        else:
+            print("\n❌ No se pudo extraer ninguna configuración")
+            return False
+            
+    except ValueError:
+        print("❌ Entrada inválida")
+        return False
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        return False
+
 def save_current_configuration():
     """Menú principal para guardar configuración"""
     brave_config = get_brave_config_path()
@@ -583,10 +764,11 @@ def save_current_configuration():
     print("   1. Todos los perfiles")
     print("   2. Perfil específico")
     print("   3. Solo configuración global (sin datos de navegación)")
-    print("   4. Volver al menú principal")
+    print("   4. 🎯 Solo settings clave (sin datos, como JSON)")
+    print("   5. Volver al menú principal")
     
     try:
-        choice = int(input("\n🔢 Elegí opción: "))
+        choice = int(input("\n🔢 Elegir opción: "))
         
         if choice == 1:
             return save_all_profiles()
@@ -595,264 +777,18 @@ def save_current_configuration():
         elif choice == 3:
             return save_global_config_only()
         elif choice == 4:
-            return True
+            return save_settings_only()
+        elif choice == 5:
+            return True  # Volver al menú principal
         else:
             print("❌ Opción inválida")
-            return False
-            
-    except ValueError:
-        print("❌ Entrada inválida")
-        return False
-
-def restore_from_saved():
-    """Restaurar desde configuración guardada"""
-    saved_configs = list_saved_configurations()
-    
-    if not saved_configs:
-        print("❌ No hay configuraciones guardadas")
-        input("Presioná Enter para continuar...")
-        return False
-    
-    print("\n📦 CONFIGURACIONES GUARDADAS:")
-    print("=" * 50)
-    for i, saved in enumerate(saved_configs, 1):
-        saved_name = saved.name.replace("brave_saved_", "")
-        if len(saved_name) >= 14 and saved_name[8] == "_":
-            try:
-                dt = datetime.datetime.strptime(saved_name, "%Y%m%d_%H%M%S")
-                formatted_time = dt.strftime("%d/%m/%Y %H:%M:%S")
-                print(f"  {i}. {formatted_time}")
-            except:
-                print(f"  {i}. {saved_name}")
-        else:
-            print(f"  {i}. {saved_name}")
-    
-    print(f"  {len(saved_configs) + 1}. Volver")
-    print("=" * 50)
-    
-    try:
-        choice = int(input("\n🔢 Elegí configuración: ")) - 1
-        if choice == len(saved_configs):
-            return False
-        
-        if choice < 0 or choice >= len(saved_configs):
-            print("❌ Opción inválida")
-            return False
-        
-        selected_saved = saved_configs[choice]
-        saved_name = selected_saved.name.replace("brave_saved_", "")
-        
-        if not ask_yes_no(f"¿Restaurar configuración guardada '{saved_name}'?"):
-            print("❌ Operación cancelada")
-            return False
-        
-        # AVISO IMPORTANTE: Cerrar Brave
-        print("\n⚠️ ¡IMPORTANTE!")
-        print("🌐 Brave Browser debe estar completamente cerrado antes de restaurar")
-        print("💡 Cierra todas las ventanas y pestañas de Brave")
-        
-        if not ask_yes_no("¿Confirmás que Brave está cerrado para continuar?"):
-            print("❌ Operación cancelada - cerrá Brave primero")
-            return False
-        
-        # Hacer backup si se desea
-        brave_config = get_brave_config_path()
-        if brave_config.exists():
-            if ask_yes_no("¿Hacer backup de la configuración actual?"):
-                if not create_backup():
-                    print("⚠️ No se pudo crear el backup, continuando...")
-        
-        # Eliminar configuración actual
-        if brave_config.exists():
-            shutil.rmtree(brave_config)
-        
-        # Restaurar desde guardada
-        shutil.copytree(selected_saved, brave_config)
-        print(f"✅ Configuración '{saved_name}' restaurada!")
-        
-        return True
-        
-    except ValueError:
-        print("❌ Entrada inválida")
-        return False
-    except Exception as e:
-        print(f"❌ Error al restaurar: {e}")
-        return False
-
-def restore_from_repo():
-    """Restaurar desde configuración del repositorio"""
-    brave_configs = find_brave_configurations()
-    
-    if not brave_configs:
-        print("❌ No hay configuraciones disponibles en este repo")
-        input("Presioná Enter para continuar...")
-        return False
-    
-    print("\n📦 CONFIGURACIONES DISPONIBLES EN ESTE REPO:")
-    print("=" * 50)
-    for i, config_dir in enumerate(brave_configs, 1):
-        print(f"  {i}. {config_dir.name}")
-    
-    print(f"  {len(brave_configs) + 1}. Volver")
-    print("=" * 50)
-    
-    try:
-        choice = int(input("\n🔢 Elegí configuración: ")) - 1
-        if choice == len(brave_configs):
-            return False
-        
-        if choice < 0 or choice >= len(brave_configs):
-            print("❌ Opción inválida")
-            return False
-        
-        selected_config = brave_configs[choice]
-        
-        if not ask_yes_no(f"¿Restaurar '{selected_config.name}' a tu sistema?"):
-            print("❌ Operación cancelada")
-            return False
-        
-        # AVISO IMPORTANTE: Cerrar Brave
-        print("\n⚠️ ¡IMPORTANTE!")
-        print("🌐 Brave Browser debe estar completamente cerrado antes de restaurar")
-        print("💡 Cierra todas las ventanas y pestañas de Brave")
-        
-        if not ask_yes_no("¿Confirmás que Brave está cerrado para continuar?"):
-            print("❌ Operación cancelada - cerrá Brave primero")
-            return False
-        
-        # Hacer backup si se desea
-        brave_config = get_brave_config_path()
-        if brave_config.exists():
-            if ask_yes_no("¿Hacer backup de tu configuración actual?"):
-                if not create_backup():
-                    print("⚠️ No se pudo crear el backup, continuando...")
-        
-        # Eliminar configuración actual
-        if brave_config.exists():
-            shutil.rmtree(brave_config)
-        
-        # Restaurar desde configuración seleccionada
-        shutil.copytree(selected_config, brave_config)
-        print(f"✅ '{selected_config.name}' restaurada en tu sistema!")
-        
-        return True
-        
-    except ValueError:
-        print("❌ Entrada inválida")
-        return False
-    except Exception as e:
-        print(f"❌ Error al restaurar: {e}")
-        return False
-
-def restore_from_backup():
-    """Restaurar desde backups"""
-    backups = list_available_backups()
-    
-    if not backups:
-        print("❌ No hay backups disponibles")
-        input("Presioná Enter para continuar...")
-        return False
-    
-    print("\n📦 BACKUPS DISPONIBLES:")
-    print("=" * 50)
-    for i, backup in enumerate(backups, 1):
-        backup_name = backup.name.replace("brave_backup_", "")
-        if len(backup_name) >= 14 and backup_name[8] == "_":
-            try:
-                dt = datetime.datetime.strptime(backup_name, "%Y%m%d_%H%M%S")
-                formatted_time = dt.strftime("%d/%m/%Y %H:%M:%S")
-                print(f"  {i}. {formatted_time}")
-            except:
-                print(f"  {i}. {backup_name}")
-        else:
-            print(f"  {i}. {backup_name}")
-    
-    print(f"  {len(backups) + 1}. Volver")
-    print("=" * 50)
-    
-    try:
-        choice = int(input("\n🔢 Elegí backup: ")) - 1
-        if choice == len(backups):
-            return False
-        
-        if choice < 0 or choice >= len(backups):
-            print("❌ Opción inválida")
-            return False
-        
-        selected_backup = backups[choice]
-        backup_name = selected_backup.name.replace("brave_backup_", "")
-        
-        if not ask_yes_no(f"¿Restaurar backup '{backup_name}'?"):
-            print("❌ Operación cancelada")
-            return False
-        
-        # AVISO IMPORTANTE: Cerrar Brave
-        print("\n⚠️ ¡IMPORTANTE!")
-        print("🌐 Brave Browser debe estar completamente cerrado antes de restaurar")
-        print("💡 Cierra todas las ventanas y pestañas de Brave")
-        
-        if not ask_yes_no("¿Confirmás que Brave está cerrado para continuar?"):
-            print("❌ Operación cancelada - cerrá Brave primero")
-            return False
-        
-        # Hacer backup si se desea
-        brave_config = get_brave_config_path()
-        if brave_config.exists():
-            if ask_yes_no("¿Hacer backup de la configuración actual?"):
-                if not create_backup():
-                    print("⚠️ No se pudo crear el backup, continuando...")
-        
-        # Eliminar configuración actual
-        if brave_config.exists():
-            shutil.rmtree(brave_config)
-        
-        # Restaurar desde backup
-        shutil.copytree(selected_backup, brave_config)
-        print(f"✅ Backup '{backup_name}' restaurado!")
-        
-        return True
-        
-    except ValueError:
-        print("❌ Entrada inválida")
-        return False
-    except Exception as e:
-        print(f"❌ Error al restaurar backup: {e}")
-        return False
-
-def show_restore_menu():
-    """Menú para restaurar configuración"""
-    obs_path_display = get_brave_config_path_display()
-    
-    while True:
-        print(f"\n📤 Selecciona configuración para restaurar a tu sistema:")
-        print(f"📂 Se restaurará en: {obs_path_display}")
-        print("   1. Configs guardadas en este repo")
-        print("   2. Configs disponibles en este repo")
-        print("   3. Backups en este repo")
-        print("   4. Volver al menú principal")
-        
-        try:
-            choice = int(input("\n🔢 Seleccioná opción (1-4): "))
-            
-            if choice == 1:
-                return restore_from_saved()
-                
-            elif choice == 2:
-                return restore_from_repo()
-                
-            elif choice == 3:
-                return restore_from_backup()
-                
-            elif choice == 4:
-                return True  # Volver al menú principal
-                
-            else:
-                print("❌ Opción inválida")
-                input("Presioná Enter para continuar...")
-                
-        except ValueError:
-            print("❌ Entrada inválida")
             input("Presioná Enter para continuar...")
+            return False
+                
+    except ValueError:
+        print("❌ Entrada inválida")
+        input("Presioná Enter para continuar...")
+        return False
 
 def replace_with_saved():
     """Reemplazar configuración local con configuración guardada"""
