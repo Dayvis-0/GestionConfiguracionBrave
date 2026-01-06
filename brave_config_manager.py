@@ -13,6 +13,10 @@ import datetime
 import json
 from pathlib import Path
 
+def clear_screen():
+    """Limpia la pantalla según el sistema operativo"""
+    os.system('cls' if platform.system().lower() == 'windows' else 'clear')
+
 def detect_os():
     """Detecta el sistema operativo"""
     os_name = platform.system().lower()
@@ -954,6 +958,185 @@ def replace_with_backup():
         print(f"❌ Error al reemplazar: {e}")
         return False
 
+def show_restore_menu():
+    """Menú para restaurar configuración al sistema"""
+    print("\n📤 RESTAURAR CONFIGURACIÓN")
+    print("=" * 40)
+    print("   1. Restaurar desde configuración guardada")
+    print("   2. Restaurar desde backup")
+    print("   3. Volver al menú principal")
+    
+    try:
+        choice = int(input("\n🔢 Seleccioná opción (1-3): "))
+        
+        if choice == 1:
+            return restore_from_saved()
+        elif choice == 2:
+            return restore_from_backup()
+        elif choice == 3:
+            return True  # Volver al menú principal
+        else:
+            print("❌ Opción inválida")
+            input("Presioná Enter para continuar...")
+            return False
+            
+    except ValueError:
+        print("❌ Entrada inválida")
+        input("Presioná Enter para continuar...")
+        return False
+
+def restore_from_saved():
+    """Restaura configuración desde configuraciones guardadas"""
+    saved_configs = list_saved_configurations()
+    
+    if not saved_configs:
+        print("❌ No hay configuraciones guardadas")
+        input("Presioná Enter para continuar...")
+        return False
+    
+    print("\n📦 CONFIGURACIONES GUARDADAS:")
+    print("=" * 50)
+    for i, saved in enumerate(saved_configs, 1):
+        saved_name = saved.name.replace("brave_saved_", "")
+        if len(saved_name) >= 14 and saved_name[8] == "_":
+            try:
+                dt = datetime.datetime.strptime(saved_name, "%Y%m%d_%H%M%S")
+                formatted_time = dt.strftime("%d/%m/%Y %H:%M:%S")
+                print(f"  {i}. {formatted_time}")
+            except:
+                print(f"  {i}. {saved_name}")
+        else:
+            print(f"  {i}. {saved_name}")
+    
+    print(f"  {len(saved_configs) + 1}. Volver")
+    print("=" * 50)
+    
+    try:
+        choice = int(input("\n🔢 Elegí configuración: ")) - 1
+        if choice == len(saved_configs):
+            return False
+        
+        if choice < 0 or choice >= len(saved_configs):
+            print("❌ Opción inválida")
+            input("Presioná Enter para continuar...")
+            return False
+        
+        selected_saved = saved_configs[choice]
+        saved_name = selected_saved.name.replace("brave_saved_", "")
+        
+        # Verificar que Brave esté cerrado
+        if not ask_yes_no("¿Cerraste completamente Brave Browser?"):
+            print("❌ Cerrá Brave y volvé a intentarlo")
+            input("Presioná Enter para continuar...")
+            return False
+        
+        # Hacer backup antes de restaurar
+        if ask_yes_no("¿Querés hacer backup antes de restaurar?"):
+            if not create_backup():
+                print("⚠️ No se pudo crear el backup, continuando...")
+        
+        brave_config = get_brave_config_path()
+        
+        print(f"\n📤 Restaurando configuración '{saved_name}'...")
+        print(f"📍 Hacia: {brave_config}")
+        
+        # Eliminar configuración actual
+        if brave_config.exists():
+            shutil.rmtree(brave_config)
+        
+        # Copiar configuración guardada
+        shutil.copytree(selected_saved, brave_config)
+        
+        print(f"✅ Configuración restaurada exitosamente!")
+        print("🔄 Podés abrir Brave Browser ahora")
+        
+        return True
+        
+    except ValueError:
+        print("❌ Entrada inválida")
+        input("Presioná Enter para continuar...")
+        return False
+    except Exception as e:
+        print(f"❌ Error al restaurar: {e}")
+        input("Presioná Enter para continuar...")
+        return False
+
+def restore_from_backup():
+    """Restaura configuración desde backup"""
+    backups = list_available_backups()
+    
+    if not backups:
+        print("❌ No hay backups disponibles")
+        input("Presioná Enter para continuar...")
+        return False
+    
+    print("\n💾 BACKUPS DISPONIBLES:")
+    print("=" * 50)
+    for i, backup in enumerate(backups, 1):
+        backup_name = backup.name.replace("brave_backup_", "")
+        if len(backup_name) >= 14 and backup_name[8] == "_":
+            try:
+                dt = datetime.datetime.strptime(backup_name, "%Y%m%d_%H%M%S")
+                formatted_time = dt.strftime("%d/%m/%Y %H:%M:%S")
+                print(f"  {i}. {formatted_time}")
+            except:
+                print(f"  {i}. {backup_name}")
+        else:
+            print(f"  {i}. {backup_name}")
+    
+    print(f"  {len(backups) + 1}. Volver")
+    print("=" * 50)
+    
+    try:
+        choice = int(input("\n🔢 Elegí backup: ")) - 1
+        if choice == len(backups):
+            return False
+        
+        if choice < 0 or choice >= len(backups):
+            print("❌ Opción inválida")
+            input("Presioná Enter para continuar...")
+            return False
+        
+        selected_backup = backups[choice]
+        backup_name = selected_backup.name.replace("brave_backup_", "")
+        
+        # Verificar que Brave esté cerrado
+        if not ask_yes_no("¿Cerraste completamente Brave Browser?"):
+            print("❌ Cerrá Brave y volvé a intentarlo")
+            input("Presioná Enter para continuar...")
+            return False
+        
+        # Hacer backup antes de restaurar
+        if ask_yes_no("¿Querés hacer backup antes de restaurar?"):
+            if not create_backup():
+                print("⚠️ No se pudo crear el backup, continuando...")
+        
+        brave_config = get_brave_config_path()
+        
+        print(f"\n📤 Restaurando backup '{backup_name}'...")
+        print(f"📍 Hacia: {brave_config}")
+        
+        # Eliminar configuración actual
+        if brave_config.exists():
+            shutil.rmtree(brave_config)
+        
+        # Copiar backup
+        shutil.copytree(selected_backup, brave_config)
+        
+        print(f"✅ Backup restaurado exitosamente!")
+        print("🔄 Podés abrir Brave Browser ahora")
+        
+        return True
+        
+    except ValueError:
+        print("❌ Entrada inválida")
+        input("Presioná Enter para continuar...")
+        return False
+    except Exception as e:
+        print(f"❌ Error al restaurar backup: {e}")
+        input("Presioná Enter para continuar...")
+        return False
+
 def show_replace_menu():
     """Menú para reemplazar configuración local"""
     while True:
@@ -1018,6 +1201,7 @@ def interactive_mode():
                     input("\n✅ ¡Listo! Presioná Enter para continuar...")
                 else:
                     input("\n❌ Error. Presioná Enter para continuar...")
+                clear_screen()
                     
             elif main_choice == "2":
                 # Restaurar configuración
@@ -1026,6 +1210,7 @@ def interactive_mode():
                     input("\n✅ Operación completada. Presioná Enter para continuar...")
                 else:
                     input("\n❌ Error. Presioná Enter para continuar...")
+                clear_screen()
                     
             elif main_choice == "3":
                 # Reemplazar configuración local
@@ -1034,6 +1219,7 @@ def interactive_mode():
                     input("\n✅ Operación completada. Presioná Enter para continuar...")
                 else:
                     input("\n❌ Error. Presioná Enter para continuar...")
+                clear_screen()
                     
             elif main_choice == "4":
                 if ask_yes_no("¿Querés salir?"):
