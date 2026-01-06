@@ -51,7 +51,7 @@ class BackupManager:
         saved_dir = BackupManager.get_saved_configs_dir()
         if saved_dir.exists():
             for item in saved_dir.iterdir():
-                if item.is_dir() and item.name.startswith("brave_saved_"):
+                if item.is_dir() and any(f.suffix == '.json' for f in item.iterdir() if f.is_file()):
                     saved.append(item)
         
         # Buscar en Linux/ (configs guardadas manualmente)
